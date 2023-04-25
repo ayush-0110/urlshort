@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>URL Shortening Service</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        form {
+            display: none;
+            flex-direction: column;
+            width: 300px;
+            margin-bottom: 1rem;
+        }
+
+        input {
+            margin-bottom: 1rem;
+            padding: 0.5rem;
+        }
+
+        #result {
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+    <button id="showRegisterButton">Register</button>
+    <button id="showLoginButton">Login</button>
+    <button id="showShortenUrlButton">Shorten URL</button>
+
+    <form id="registerForm">
+        <h2>Register</h2>
+        <input type="email" id="registerEmail" placeholder="Email" required />
+        <input type="password" id="registerPassword" placeholder="Password" required />
+        <button type="submit">Register</button>
+    </form>
+
+    <form id="loginForm">
+        <h2>Login</h2>
+        <input type="email" id="loginEmail" placeholder="Email" required />
+        <input type="password" id="loginPassword" placeholder="Password" required />
+        <button type="submit">Login</button>
+    </form>
+
+    <form id="urlForm">
+        <h2>Shorten URL</h2>
+        <input type="url" id="urlInput" placeholder="Enter a URL" required />
+        <button type="submit">Shorten URL</button>
+    </form>
+    <div id="resultDiv"></div>
+
+    <script>
+          const registerButton = document.getElementById('showRegisterButton');
+  const loginButton = document.getElementById('showLoginButton');
+  const shortenUrlButton = document.getElementById('showShortenUrlButton');
+  const registerForm = document.getElementById('registerForm');
+  const loginForm = document.getElementById('loginForm');
+  const urlForm = document.getElementById('urlForm');
+const resultDiv=document.getElementById('resultDiv')
+  // Initially hide all forms except the register form
+  registerForm.style.display = 'block';
+  loginForm.style.display = 'none';
+  urlForm.style.display = 'none';
+
+  registerButton.addEventListener('click', () => {
+    registerForm.style.display = 'block';
+    loginForm.style.display = 'none';
+    urlForm.style.display = 'none';
+  });
+
+  loginButton.addEventListener('click', () => {
+    registerForm.style.display = 'none';
+    loginForm.style.display = 'block';
+    urlForm.style.display = 'none';
+  });
+
+  shortenUrlButton.addEventListener('click', () => {
+    // Only show the shorten URL form if the user is logged in
+    if (localStorage.getItem('jwt')) {
+      registerForm.style.display = 'none';
+      loginForm.style.display = 'none';
+      urlForm.style.display = 'block';
+    } else {
+      alert('Please log in to shorten URLs.');
+    }
+  });
+  
+        document.getElementById('registerForm').addEventListener('submit', register);
+        document.getElementById('loginForm').addEventListener('submit', login);
+  
+        async function register(event) {
+          event.preventDefault();
+          const email = document.getElementById('registerEmail').value;
+          const password = document.getElementById('registerPassword').value;
+  
+          try {
+            const response = await fetch('/register', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password }),
+            });
+  
+            if (!response.ok) {
+              throw new Error('Error registering user');
+            }
+  
+            const data = await response.json();
+            alert('Registration successful. You can now log in.');
+  
+          } catch (error) {
+            alert('Error: ' + error.message);
+          }
+        }
+  
+        async function login(event) {
+          event.preventDefault();
+          const email = document.getElementById('loginEmail').value;
+          const password = document.getElementById('loginPassword').value;
+  
+          try {
+            const response = await fetch('/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, password }),
+            });
+  
+            if (!response.ok) {
+              throw new Error('Error logging in');
+            }
+  
+            const data = await response.json();
+            localStorage.setItem('jwt', data.token);
+            alert('Logged in successfully.');
+            registerForm.style.display = 'none';
+            loginForm.style.display = 'none';
+            urlForm.style.display = 'block';
+  
+          } catch (error) {
+            alert('Error: ' + error.message);
+          }
+        }
+  
+        document.getElementById('urlForm').addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const urlInput = document.getElementById('urlInput');
+  
+          try {
+            const response = await fetch('/shorten', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${localStorage.getItem('jwt')}` // Include the JWT in the Authorization header
+              },
+              body: JSON.stringify({ url: urlInput.value }),
+            });
+  
+            if (!response.ok) {
+              throw new Error('Error shortening URL');
+            }
+  
+            const data = await response.json();
+            const fullShortUrl = data.shortUrl;
+            resultDiv.innerHTML = `<a href="${fullShortUrl}" target="_blank">${fullShortUrl}</a>`;
+          } catch (error) {
+            resultDiv.textContent = 'Error: ' + error.message;
+          }
+        });
+  </script>
+  
+</body>
+</html>
